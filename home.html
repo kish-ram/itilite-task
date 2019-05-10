@@ -1,0 +1,194 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+		<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.1.2/handlebars.min.js"></script>
+		<title>Task</title>
+	</head>
+	<body>
+		<div style="margin-top: 3%;text-align: center;">
+			<form id="form" method="POST">
+				<select id="from" name="from">
+					<option value="MAA" selected="selected">Chennai - MAA</option>
+					<option value="BLR">Bangalore - BLR</option>
+				</select>
+				<i class="fas fa-exchange-alt" id="swap" style="cursor: pointer;"></i>
+				<select id="return" name="return">
+					<option value="BLR" selected="selected">Bangalore - BLR</option>
+					<option value="MAA">Chennai - MAA</option>
+				</select>
+				<select id="depTime" name="depTime">
+					<option value="00:00-23:59" selected="selected">Any time</option>
+					<option value="00:00-04:00">12:00 AM and 04:00 AM</option>
+					<option value="04:00-08:00">04:00 AM and 08:00 AM</option>
+					<option value="08:00-12:00">08:00 AM and 12:00 PM</option>
+					<option value="12:00-16:00">12:00 PM and 04:00 PM</option>
+					<option value="16:00-20:00">04:00 PM and 08:00 PM</option>
+					<option value="20:00-23:59">08:00 PM and 12:00 AM</option>
+				</select>
+				<input type="checkbox" value="with-stop" name="stoppages">Include flights with stops
+				<button type="button" id="search">Search</button>
+			</form>
+		</div>
+		<div style="text-align: center;margin-top: 2%;display: none;" id="NoFlightDets">
+			<p>No flights available</p>
+		</div>
+		<div style="text-align: center;margin-top: 2%;display: none;" id="flightDets">
+			<!-- <h3>Flight Details</h3> -->
+			<table class="table table-border" id="flightTbl" style="text-align: center;width: 100%;">
+				<thead>
+					<tr>
+						<th>Flight</th>
+						<th>Departure</th>
+						<th>Duration</th>
+						<th>Arrival</th>
+						<th>Price</th>
+					</tr>
+				</thead>
+				<tbody id="tblBody">
+					
+				</tbody>
+			</table>
+		</div>
+	</body>
+
+	<script id="template" type="text/x-handlebars-template">
+		{{#each data as |key value|}}
+			<tr>
+				{{#with key.flights}}
+					{{#flight key}}
+					{{/flight}}
+				{{/with}}
+			</tr>
+		{{/each}}
+	</script>
+
+	<script type="text/javascript">
+		function durationConverter(n) {
+			var num = n;
+			var hours = (num / 60);
+			var roundedHrs = Math.floor(hours);
+			var minutes = (hours - roundedHrs) * 60;
+			var roundedMins = Math.round(minutes);
+
+			var rtn = '';
+			if(roundedHrs>0)
+				rtn += roundedHrs + " hr(s)";
+			if(roundedMins>0)
+			{	
+				rtn += roundedHrs>0 ? " " : "";
+				rtn += roundedMins + " min(s)";
+			}
+			return rtn;
+		}
+
+		function dateFormtting(date)
+		{
+			var dateObj = new Date(date);
+			var hours = dateObj.getHours();
+			var minutes = dateObj.getMinutes();
+			if(hours<10)
+			{
+				hours = "0"+hours;
+			}
+			if(minutes<10)
+			{
+				minutes = "0"+minutes;
+			}
+			return hours+":"+minutes;
+		}
+
+		Handlebars.registerHelper('flight', function(srcdata) {
+			var flightCount = srcdata.flights.length;
+			var html = "";
+			var modalHtml = "";
+			html += "<td>"+srcdata.flights[0].carrier_name+"<br>"+srcdata.flights[0].carrier_id+"</td>";
+			html += "<td>"+dateFormtting(srcdata.flights[0].departure_date_time)+"<br>"+srcdata.flights[0].from+"</td>";
+
+			
+
+			if(flightCount>1)
+			{
+				modalHtml +=  '<div id="flightDetsModal'+srcdata["result-index"]+'" class="modal fade" role="dialog">';
+				modalHtml +=  '<div class="modal-dialog">';
+				modalHtml +=  '<div class="modal-content">';
+				modalHtml +=  '<div class="modal-header">';
+				modalHtml +=  '<h4 class="modal-title">Flight Details</h4>';
+				modalHtml +=  '<button type="button" class="close" data-dismiss="modal">&times;</button>';
+				modalHtml +=  '</div>';
+				modalHtml +=  '<div class="modal-body">';
+				modalHtml +=  '<table style="text-align: center;width: 100%;">';
+				for (var i = 0; i < srcdata.flights.length; i++) {
+					modalHtml +=  '<tr>';
+					modalHtml +=  '<td>'+srcdata.flights[i].carrier_name+'<br>'+srcdata.flights[i].carrier_id+'</td>';
+					modalHtml +=  '<td>'+dateFormtting(srcdata.flights[i].departure_date_time)+'<br>'+srcdata.flights[i].from+'</td>';
+					modalHtml +=  '<td>'+durationConverter(srcdata.flights[i].flight_duration)+'</td>';
+					modalHtml +=  '<td>'+dateFormtting(srcdata.flights[i].arrival_date_time)+'<br>'+srcdata.flights[i].to+'</td>';
+					modalHtml +=  '</tr>';
+				}
+				modalHtml +=  '</table>';
+				modalHtml +=  '</div>';
+				modalHtml +=  '<div class="modal-footer">';
+				modalHtml +=  '<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>';
+				modalHtml +=  '</div>';
+				modalHtml +=  '</div>';
+				modalHtml +=  '</div>';
+				modalHtml +=  '</div>';
+				html += "<td>"+durationConverter(srcdata.total_duration)+"<br><a href='#' data-toggle='modal' data-target='#flightDetsModal"+srcdata['result-index']+"'>"+(flightCount-1)+" stop </a>"+modalHtml+"</td>";
+			}
+			else
+			{
+				html += "<td>"+durationConverter(srcdata.total_duration)+"</td>";
+			}
+			html += "<td>"+dateFormtting(srcdata.flights[flightCount-1].arrival_date_time)+"<br>"+srcdata.flights[flightCount-1].to+"</td>";
+			html += "<td>"+srcdata.sale_price+"</td>";
+			return new Handlebars.SafeString(html);
+		});
+
+		function templateGeneration(srcdata){
+			$("#tblBody").html('');
+			var source   = $("#template").html();
+			var template = Handlebars.compile(source);
+			var data = {'data':srcdata};
+			// console.log(template(data));
+			$("#tblBody").append(template(data));
+		}
+		$(document).ready(function(){
+			$("#swap").on('click',function(){
+				var from = $('#from').val();
+				var ret = $('#return').val();
+				$("#from").val(ret);
+				$("#return").val(from);
+			});
+
+			$("#depTime").on('change', function(){
+				$("#search").trigger('click');
+			});
+
+			$("#search").on('click',function(){
+				var form = $("#form");
+				$.ajax({
+					type: "post",
+					url: "search.php",
+					data: form.serialize(),
+					dataType : 'json',
+					success: function(result){
+						if(!result)
+						{
+							$("#flightDets").hide();
+							$("#NoFlightDets").show();
+						}
+						else
+						{
+							$("#NoFlightDets").hide();
+							$("#flightDets").show();
+							templateGeneration(result);
+						}
+					}
+				});
+			});
+		});
+	</script>
+</html>
